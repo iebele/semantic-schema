@@ -1,5 +1,5 @@
 # laravel-semantic-schema
-Laravel/Lumen models for schema.org types and properties
+Laravel/Lumen package for schema.org types and properties
 
 *Please not this package is under construction. It doesn't work yet*
 
@@ -28,8 +28,8 @@ The main types provide by [Schema.org](http://schema.org) are:
 
 ```php
 $schema = new Schema();
-// return a model based on 'CreativeWork'
-$list = $schema->list('CreativeWork');
+// return all sub-types and properties of 'CreativeWork'
+$creativeWork = $schema->type('CreativeWork');
 ```
 
 ## References 
@@ -42,14 +42,15 @@ $list = $schema->list('CreativeWork');
 ## Todo 
 
 - [x] Readme
-- [ ] Installation
-- [ ] Command with schema.org crawler 
-- [x] Package
+- [ ]
+- [ ] Artisan Command
+- [ ] Package Installation
 - [x] Migrations
 
 <hr>
 
-This packages does not come with migrations. You should add them to your migrations manually:
+The migrations in this packages are disabled by default to prevent overwriting tables.
+You can change the file `SemanticSchemaServiceProvider.php` or add the following to your migrations:
 
 
 ```php
