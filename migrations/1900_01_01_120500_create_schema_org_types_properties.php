@@ -28,7 +28,7 @@ class CreateSchemaOrgTypesProperties extends Migration
 
         Schema::create('schema_types_pivot', function(Blueprint $table)
         {
-            $table->bigIncrements('id');
+            $table->increments('id');
             $table->boolean('favorite')->default(false);
             $table->integer('child_id')->unsigned()->index();
             $table->foreign('child_id')->references('id')->on('schema_types');
@@ -48,7 +48,7 @@ class CreateSchemaOrgTypesProperties extends Migration
 
         Schema::create('schema_property_types', function(Blueprint $table)
         {
-            $table->bigIncrements('id');
+            $table->increments('id');
             $table->unsignedInteger('position')->nullable();
             $table->integer('type_id')->unsigned()->index();
             $table->foreign('type_id')->references('id')->on('schema_types');
