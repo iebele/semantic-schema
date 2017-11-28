@@ -1,5 +1,6 @@
-# laravel-semantic-schema
-Laravel/Lumen package for schema.org types and properties
+# semantic-schema
+
+Laravel/Lumen package for schema.org types and properties.
 
 *Please not this package is under construction. It doesn't work yet*
 
@@ -24,7 +25,7 @@ The main types provide by [Schema.org](http://schema.org) are:
    - Product 
    - MedicalEntity
 
-## Example 
+### Example
 
 ```php
 $schema = new Schema();
@@ -32,20 +33,63 @@ $schema = new Schema();
 $creativeWork = $schema->type('CreativeWork');
 ```
 
-## References 
 
-  - [Schema.org](http://schema.org)
-  - [A Web Bot that crawls the Schema.org web site to retrieve all available Types and Properties](https://github.com/alexprut/Spider4Schema)
-  - [A nice visual example of Schema.org](https://technicalseo.com/seo-tools/schema-markup-generator/visual/)
- 
- 
-## Todo 
 
-- [x] Readme
-- [ ]
-- [ ] Artisan Command
-- [ ] Package Installation
-- [x] Migrations
+## Installation
+
+### PSR-4
+
+
+In the root of your Laravel/Lumen installation create a directory 'packages' (if it does not already exists) and change to this directory.
+
+Clone this repository:
+
+```bash
+git clone https://github.com/iebele/semantic-schema
+```
+
+Add the following line to the 'autoload/psr-4' section of the composer.json file:
+
+```json
+{
+        "psr-4": {
+            "App\\": "app/",
+            "Iebele\\SemanticSchema\\": "packages/iebele/semantic-schema/src"
+
+        }
+}
+```
+
+Add the following line to your `bootstrap/app.php (Lumen)` file:
+
+```php
+/*
+|--------------------------------------------------------------------------
+| Register Service Providers
+|--------------------------------------------------------------------------
+|
+| Here we will register all of the application's service providers which
+| are used to bind services into the container. Service providers are
+| totally optional, so you are not required to uncomment this line.
+|
+*/
+
+$app->register(Iebele\SemanticSchema\SemanticSchemaServiceProvider::class);
+```
+
+In your terminal run:
+
+```bash
+composer dump-autoload
+```
+
+Now, if the installation is succesfull, you can run in your terminal:
+
+```
+php artisan list
+```
+
+You will see the available commands for **semantic-schema** listed under `schema`.
 
 <hr>
 
@@ -131,3 +175,20 @@ class CreateSchemaOrgTypesProperties extends Migration
 
 }
 ```
+
+
+## Todo
+
+- [x] Readme
+- [ ]
+- [ ] Artisan Command
+- [ ] Package Installation
+- [x] Migrations
+
+## References
+
+  - [Schema.org](http://schema.org)
+  - [A Web Bot that crawls the Schema.org web site to retrieve all available Types and Properties](https://github.com/alexprut/Spider4Schema)
+  - [A nice visual example of Schema.org](https://technicalseo.com/seo-tools/schema-markup-generator/visual/)
+
+
