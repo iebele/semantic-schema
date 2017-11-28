@@ -17,7 +17,7 @@ An example of a type is a `CreativeWork`, which has - among many others - a prop
 
 Software dealing with structured data design can use this package to retrieve lists of `types` and their expected `properties` as provided by [Schema.org](http://schema.org).
 
-The main types provide by [Schema.org](http://schema.org) are:
+The main types provided (following [Schema.org](http://schema.org))are:
 
    - Action
    - CreativeWork
@@ -29,10 +29,17 @@ The main types provide by [Schema.org](http://schema.org) are:
    - Product 
    - MedicalEntity
 
-### Example
+### Quick Example
 
 ```php
 $schema = new SemanticSchema();
+
+// return all main types
+$mainTypes = $schema->mainTypes();
+
+// return all data types ('Boolean', 'Date', 'DateTime', 'Number', etc. )
+$mainDataTypes = $schema->dataTypes();
+
 // return all sub-types and properties of 'CreativeWork'
 $creativeWork = $schema->type('CreativeWork');
 ```
@@ -228,7 +235,11 @@ class CreateSchemaOrgTypesProperties extends Migration
 
 **Semantic Schema** uses the [Full Hierarchy](https://schema.org/docs/full.html) as provided by [Schema.org](http://schema.org).
 The collection of the  [Full Hierarchy](https://schema.org/docs/full.html) by **Semantic Schema** using about 700+ HTTP requests for each `type` takes considerable time.
- 
+Might the markup of the [Full Hierarchy](https://schema.org/docs/full.html) change, **Semantic Schema** might produce errors while fetching the data.
+If this might happen, please report this to me.
+
+I could have decided to use [schema.rdfa](https://github.com/schemaorg/schemaorg/blob/master/data/schema.rdfa).
+But, at the moment of writing this package I could not decide how to obtain all properties of a given `type`, so "I did it my way".
 
 ## References
 
