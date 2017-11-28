@@ -44,7 +44,7 @@ In the root of your Laravel/Lumen installation create a directory 'packages' (if
 
 Clone this repository:
 
-```bash
+```bash{r, engine='bash', clone_repo}
 git clone https://github.com/iebele/semantic-schema
 ```
 
@@ -79,13 +79,13 @@ $app->register(Iebele\SemanticSchema\SemanticSchemaServiceProvider::class);
 
 In your terminal run:
 
-```bash
+```bash{r, engine='bash', dump_autoload}
 composer dump-autoload
 ```
 
 Now, if the installation is succesfull, you can run in your terminal:
 
-```
+```bash{r, engine='bash', artisan_list}
 php artisan list
 ```
 
