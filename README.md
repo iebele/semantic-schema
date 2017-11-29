@@ -234,8 +234,9 @@ class CreateSchemaOrgTypesProperties extends Migration
 ## Limitations
 
 **Semantic Schema** uses the [Full Hierarchy](https://schema.org/docs/full.html) as provided by [Schema.org](http://schema.org).
-The collection of the  [Full Hierarchy](https://schema.org/docs/full.html) by **Semantic Schema** using about 700+ HTTP requests for each `type` takes considerable time.
-Might the markup of the [Full Hierarchy](https://schema.org/docs/full.html) change, **Semantic Schema** might produce errors while fetching the data.
+The collection of the  [Full Hierarchy](https://schema.org/docs/full.html) by **Semantic Schema** using about 700+ HTTP requests for each `type`
+takes considerable time (about 30 minutes).
+Might the markup of the [Full Hierarchy](https://schema.org/docs/full.html) change in the future, **Semantic Schema** might produce errors while fetching the data.
 If this might happen, please report this to me.
 
 I could have decided to use [schema.rdfa](https://github.com/schemaorg/schemaorg/blob/master/data/schema.rdfa).
