@@ -4,6 +4,9 @@ use Illuminate\Console\Command;
 use Iebele\SemanticSchema\SchemaOrg as SchemaOrg;
 use DOMDocument;
 use DOMXPath;
+use Symfony\Component\Console\Helper\ProgressBar;
+
+use Iebele\SemanticSchema\Models\SchemaTypes as SchemaTypes;
 
 
 /**
@@ -18,12 +21,20 @@ use DOMXPath;
  */
 
 define('COMMAND_NAME', 'Semantic Schema');
-define('CURL_TIMEOUT', 600);
+define('CURL_TIMEOUT', 6000);
 
 
 class SchemaUpdate extends Command {
 
 
+    /*
+     * Print detailed information
+     */
+    protected  $verbose;
+
+
+
+    protected $progressbar;
 
     /*
      * The URL to obtain all types from schema.org
@@ -42,14 +53,36 @@ class SchemaUpdate extends Command {
      *
      * @var string
      */
-    protected $description = 'Update tables with Schema.org data.';
+    protected $description = 'Update semantic schema repository (fetch types and properties from schema.org).';
 
     /**
      *
      */
+
+
+
+
     public function handle()
     {
         $this->fire();
+    }
+
+    /*
+    * Wait between request to prevent DDOS Schema.org
+    *
+    */
+    private function wait($seconds = null ){
+
+        if ( $seconds == null ){
+            $wait = (( rand(1, 10)/10 )+ 0.4 ) *500000;
+        }
+        else {
+            $wait = $seconds*1000000;
+        }
+        $message = "Waiting " . $wait/1000000 . " seconds before new request to schema.org (prevent DDOS)";
+        if ($this->verbose) $this->line( $message );
+        //$this->progressbar->setMessage($message);
+        usleep($wait);
     }
 
     /**
@@ -64,7 +97,7 @@ class SchemaUpdate extends Command {
         // Start timer
         $time_start = microtime(true);
 
-        $this->info('Updating. Connecting with Schema.org ');
+        $this->info('Updating schema. Connecting with Schema.org. Please wait.');
         $schemaAllTypesDocument = $this->getDocument($this->allTypesUrl);
 
         if (!$schemaAllTypesDocument){
@@ -72,20 +105,24 @@ class SchemaUpdate extends Command {
             die();
         }
 
-        $size = mb_strlen(serialize((array)$schemaAllTypesDocument['file']), '8bit');
-        // end timer
-        $time_end = microtime(true);
-        $execution_time = ($time_end - $time_start);
-        $this->info("Read " . $size . " bytes from " . $this->allTypesUrl . " in " . $execution_time . " seconds.");
 
         // Get types from file
         // Test a type
         // PreOrderAction
-        $test[0] = "+";
-        $test[1] = "Float";
-        $test[2] = "Thing";
-        $test[3] = "Audiobook";
+        //$test[] = "+";
+        //$test[] = "Float";
+        $test[] = "Thing";
+        //$test[] = "Audiobook";
+        //$test[] = "OccupationalTherapy";
+        //$test[] = "FinancialProduct";
+        $test[] = "ConfirmAction";
+        $test[] = "LoanOrCredit";
+        $test[]  = "RsvpAction";
+        $test[]  = "CreditCard";
+        $test[] = "PreOrderAction";
         $test = null;
+
+        $this->verbose = true;
 
         if (!$test){
             $types = $this->parseAllTypes($schemaAllTypesDocument['file']);
@@ -96,8 +133,20 @@ class SchemaUpdate extends Command {
         }
 
 
-        $this->info( "Found  " . count($types) . " types." );
-        $this->info( PHP_EOL );
+        $size = mb_strlen(serialize((array)$schemaAllTypesDocument['file']), '8bit');
+        // end timer
+        $time_end = microtime(true);
+        $execution_time = ($time_end - $time_start);
+
+        // Progressbar
+        $this->progressbar = $this->output->createProgressBar(count($types));
+        $this->progressbar->setFormat("<info>%message%\n %current%/%max% [%bar%] %percent:3s%% %elapsed%</info>");
+
+        $message = "Found " . count($types) . " types in document " . $this->allTypesUrl . " (". $size. " bytes) in " . $execution_time . " seconds.";
+        $this->progressbar->setMessage($message);
+        $this->progressbar->setProgress(1);
+
+        $this->wait(2);
 
 
         // iterate over all types and store types and properties in table
@@ -107,76 +156,117 @@ class SchemaUpdate extends Command {
         $validTypes = [];
         foreach ($types as $typeName)
         {
-            $this->info( "Parsing type: " . $typeName . " (type " . $count . " of " . count($types) . ")" );
+
+            if ($this->verbose)  $this->info("Parsing type: " . $typeName . " (type " . $count . " of " . count($types) . ")" );
+            $message= "Parsing type: " . $typeName ;
+            $this->progressbar->setMessage($message);
 
             // https://schema.org/docs/full.html contains a reference "PaymentCard +" under "FinancialProduct", which results in an error
             //
+            $validTypes[$typeName]['extensionUrl'] = 'http://schema.org/' . $typeName;
             if ( preg_match("/^[A-Za-z0-9]*$/", $typeName) ){
                 // Retrieve the Type HTML
                 $typeDoc = $this->getDocument('http://schema.org/' . $typeName);
                 $type = $this->parseType($typeDoc['file'], $typeName);
 
-                if ($type['hasExtensionUrl'] ){
-                    // $typeDoc = $this->getDocument('http://schema.org/' . $typeName);
-                    $typeDoc = $this->getDocument($type['hasExtensionUrl']);
+                $validTypes[$typeName]['extends'] = $type['extends'];
+
+                $extensionUrl = $type['hasExtensionUrl'];
+                if ( $extensionUrl ){
+                    $typeDoc = $this->getDocument($extensionUrl);
                     $type = $this->parseType($typeDoc['file'], $typeName);
+
+                    $validTypes[$typeName]['extensionUrl'] = $extensionUrl;
                 }
 
+
+
                 // Create our validTypes object
-                $validTypes[$typeName]['comment'] = $type['comment'];
+                $validTypes[$typeName]['description'] = $type['description'];
                 if ($type['properties']){
                     foreach ( $type['properties'] as $property => $value) {
                         $validTypes[$typeName]['properties'][$property]['name'] = $property;
                         $propertyFrom = str_replace('Properties from ', '', $value['propertyFrom']);
                         $validTypes[$typeName]['properties'][$property]['propertyFrom'] = $propertyFrom;
                         $validTypes[$typeName]['properties'][$property]['description'] = $value['description'];
+                        $validTypes[$typeName]['properties'][$property]['url'] = $value['url'];
+                        $this->line("A: " . gettype($value['expectedTypes']));
                         if ($value['expectedTypes'] ){
                             $expectedTypes = $value['expectedTypes'];
                             foreach ($expectedTypes as $expectedType){
                                 $validTypes[$typeName]['properties'][$property]['expectedTypes'][] = $expectedType;
                             }
                         }
+                        else {
+                            $validTypes[$typeName]['properties'][$property]['expectedTypes'] = [];
+                        }
                     }
                 }
                 else {
                     $validTypes[$typeName]['properties'] = [];
-                    $warnings[] = "Warning: possible invalid type " . $typeName . ". This type might not be part of core ('pending').";
+                    //$warnings[] = "Warning: possible invalid type " . $typeName . ". This type might not be part of core ('pending').";
                 }
 
                 // Show validTypes in console
 
-                $this->comment("Type: " . $typeName);
-                $this->comment("  - Comment: " . $validTypes[$typeName]['comment']);
-                $this->comment("  - Properties: ");
+                if ($this->verbose) $this->comment("Type: " . $typeName );
+                $this->line("C: " . gettype($validTypes[$typeName]['extends']));
+                if ($this->verbose) $this->comment("Extends: " . $validTypes[$typeName]['extends']);
+                if ($this->verbose) $this->comment("extensionUrl: " . $validTypes[$typeName]['extensionUrl']);
+                if ($this->verbose) $this->comment("    - Description: " . $validTypes[$typeName]['description']);
+                if ($this->verbose) $this->comment("    - Properties: ");
                 foreach ( $validTypes[$typeName]['properties'] as $property ){
-                    $this->comment("   - Name: "       . $property['name'] );
-                    $this->comment("     - Property from: " .  $property['propertyFrom']);
-                    $this->comment("     - Description: "   . $property['description']);
-                    $this->comment("     - Expected types: ");
-                    foreach ( $property['expectedTypes'] as $expectedType ){
-                        $this->comment("       -  ". $expectedType);
+
+                    if ($this->verbose) $this->comment("     - Name: "       . $property['name'] );
+                    if ($this->verbose) $this->comment("         - Property from: " .  $property['propertyFrom']);
+                    if ($this->verbose) $this->comment("         - Description: "   . $property['description']);
+                    if ($this->verbose) $this->comment("         - Url: "   . $property['url']);
+                    if ($this->verbose) $this->comment("         - Expected types: ");
+                    if ( $property['expectedTypes'] ){
+                        $this->line("B: " . gettype($property['expectedTypes'] ));
+                        foreach ( $property['expectedTypes'] as $expectedType ){
+                            if ($this->verbose)  $this->comment("             -  ". $expectedType);
+                        }
                     }
+
                 }
+                $extensionMsg = null;
+                if ($validTypes[$typeName]['extensionUrl'] ) {
+                    $extensionMsg = " (" . $validTypes[$typeName]['extensionUrl']  . ")";
+                }
+                $this->progressbar->setMessage($message . $extensionMsg . ", " .count($validTypes[$typeName]['properties']) . " properties."  );
 
 
-                // Wait some time, to not DDOS the Schema.org website
-                $wait = (( rand(1, 10)/10 )+ 0.4 ) *1000000;
-                $this->line( "Waiting " . $wait/1000000 . " seconds before new request to schema.org (prevent DDOS)" );
-                usleep($wait);
-                $this->info( PHP_EOL );
+                if ($this->verbose) $this->info( PHP_EOL );
                 $count++;
             }
             else {
                 $warnings[] = "This type is invalid: " . $typeName . "  . This is a known bug in FinancialProduct (PaymentCard).";
             }
 
+            
+            
+            // Create type record in table schema_types
+
+            $result = SchemaTypes::addType( $typeName, $validTypes[$typeName]['description'], $validTypes[$typeName]['extends'], $validTypes[$typeName]['extensionUrl']);
+
+            if ($result == null){
+                $this->progressbar->setMessage($typeName . " already exists in local database.");
+            }
+
+            $this->progressbar->setProgress($count);
+            // Wait some time, to not DDOS the Schema.org website
+            $this->wait();
+
         }
+
+        $this->progressbar->finish();
+        $this->line(PHP_EOL);
+
         if ($warnings){
-            $this->info( PHP_EOL );
-            $this->line( "There were warnings :" );
+            $this->comment( "There were some warnings:" );
             foreach ($warnings as $warning){
-                $this->error( $warning );
-                $this->info( PHP_EOL );
+                $this->comment( $warning );
             }
         }
 
@@ -187,7 +277,7 @@ class SchemaUpdate extends Command {
 
     private function getDocument($url)
     {
-        $this->info($url);
+        if ($this->verbose) $this->info($url);
 
         $curl = curl_init();
 
@@ -262,24 +352,35 @@ class SchemaUpdate extends Command {
 
         $types = array();
 
+        $previous  = "";
         foreach ($nodeList as $node) {
             // Sanitize the Type
             $type = str_replace('*', '', $node->nodeValue);
 
-            $types[$type] = $this->removeSpaces($type);
-        }
 
+            // prevent bug in "PaymentCard" and "LocalBusiness"
+            if ( $this->removeSpaces($type) != "+"){
+                $types[$type] = $this->removeSpaces($type);
+                $previous = $node->nodeValue;
+            }
+            else {
+                $types[$type] = $previous;
+            }
+        }
+        
         return $types;
     }
 
     private function parseType($html, $typeName)
     {
-        $this->info ( "parseType: Parsing type " .  $typeName .".");
+        $message =  "Parsing type " .  $typeName .".";
+        if ($this->verbose)  $this->info($message);
+        $this->progressbar->setMessage($message);
 
-        $type['comment']	= [];
-        $type['extends']	= [];
-        $type['properties']	= [];
-        $type['hasExtensionUrl']= [];
+        $type['description']	= '';
+        $type['extends']	    = '';
+        $type['properties']	    = [];
+        $type['hasExtensionUrl']= '';
 
         // Create a new DOMDocument
         $doc = new DOMDocument;
@@ -292,39 +393,38 @@ class SchemaUpdate extends Command {
         $nodeList = $xpath->query("//div[@id='mainContent']/h1");
         $isExtension = false;
         $extensionUrl = null;
+        $extensionPrefix = null;
         foreach ($nodeList as $node) {
             if ($node->nodeValue == "Schema.org Extensions") {
                 $isExtension = true;
-                $this->info($node->nodeValue);
+                if ($this->verbose) $this->info($node->nodeValue);
             }
         }
 
 
         if ( $isExtension == true ) {
+            // get link
             $nodeList = $xpath->query("//div[@id='mainContent']/ul/li/a/@href");
             foreach ($nodeList as $node) {
                 if ($node->nodeValue ) {
                     $extensionUrl = $node->nodeValue;
-                    $this->info($node->nodeValue);
+                    if ($this->verbose) $this->info($extensionUrl);
                 }
             }
-            $this->info ( $typeName .  " is defined in the extension : " . $extensionUrl  );
+
+            $message =  $typeName .  " is defined in the extension  : " . $extensionUrl;
+            if ($this->verbose)  $this->info($message);
+            $this->progressbar->setMessage($message);
+
             $type['hasExtensionUrl'] = $extensionUrl;
             return $type;
         }
 
-
-
-        $type['comment']	= $this->parseTypeComment($xpath);
+        $type['description']= $this->parseTypeComment($xpath);
         $type['extends']	= $this->parseTypeExtends($xpath);
         $type['properties']	= $this->parseTypeProperties($xpath, $typeName);
 
-        // Debug
-        //if (DEBUG === 'verbose')
-        //    var_dump($type);
-
-
-        $this->info ( "parseType: Parsed type " .  $typeName .".");
+        if ($this->verbose) $this->info ( "parseType: Parsed type " .  $typeName .".");
         return $type;
     }
 
@@ -340,7 +440,7 @@ class SchemaUpdate extends Command {
     private function parseTypeComment(DOMXPath $xpath)
     {
 
-        $this->info ( "parseTypeComment");
+        if ($this->verbose) $this->info ( "parseTypeComment");
 
         $nodeList = $xpath->query("//div[@property='rdfs:comment']");
 
@@ -351,7 +451,7 @@ class SchemaUpdate extends Command {
             $comment = $node->nodeValue;
         }
 
-        $this->info ( "parseTypeComment - done");
+        if ($this->verbose) $this->info ( "parseTypeComment - done");
         return $this->removeSpaces($comment);
     }
 
@@ -364,7 +464,7 @@ class SchemaUpdate extends Command {
      */
     private function parseTypeExtends(DOMXPath $xpath)
     {
-        $this->info ( "parseTypeExtends");
+        if ($this->verbose) $this->info ( "parseTypeExtends");
         $nodeList = $xpath->query("//h1[@class='page-title']");
 
         $tmpExtends = null;
@@ -384,7 +484,7 @@ class SchemaUpdate extends Command {
             return $this->removeSpaces($types[count($types) - 2]);
         }
 
-        $this->info ( "parseTypeExtends - done");
+        if ($this->verbose) $this->info ( "parseTypeExtends - done");
         return '';
     }
 
@@ -399,12 +499,13 @@ class SchemaUpdate extends Command {
     private function parseTypeProperties(DOMXPath $xpath, $typeName)
     {
 
-        $this->info ( "parseTypeProperties");
+        if ($this->verbose) $this->info ( "parseTypeProperties");
 
         $properties = array();
         $from = null;
+        $urls = [];
 
-        // Control if properties available
+        // Control if properties are available
         $nodeList = $xpath->query("(//thead[@class='supertype'])//a");
         foreach ($nodeList as $node)
         {
@@ -414,11 +515,12 @@ class SchemaUpdate extends Command {
             // Retrieve all available information
             foreach ($childNodes as $node)
             {
-                if ($value = $this->removeSpaces($node->nodeValue))
+                if ($value = $this->removeSpaces($node->nodeValue)){
                     $values[] = $value;
+                }
             }
 
-            // Here we skip
+            // Here we skip row 'Properties from... '
             if (count($values) > 1 ){
                 $expectedTypes = explode(' or ', $values[1]);
 
@@ -433,13 +535,25 @@ class SchemaUpdate extends Command {
         }
 
 
-        // Return an empty array if there isn't any available property
-        //if (!$nodeList->length || ($nodeList->item(0)->nodeValue != $typeName))
-        //    return array();
+        // Get url of property
+        $nodeList = $xpath->query("(//tbody[@class='supertype'])[*]/tr/th/code/a/@href");
+        foreach ($nodeList as $node)
+        {
+            $childNodes = $node->childNodes;
+
+            foreach ($childNodes as $node)
+            {
+                // We accept empty strings or single words (No rows like 'Properties from CommunicateAction')
+                if ( $node->nodeValue == "" || $this->removeSpaces($node->nodeValue)){
+                    $urls[] = $node->nodeValue;
+                }
+
+            }
+        }
 
         // Retrieve all Type Properties
-        $nodeList = $xpath->query("(//tbody[@class='supertype'])[1]/tr");
-
+        $nodeList = $xpath->query("(//tbody[@class='supertype'])[*]/tr");
+        $count = 0 ;
         foreach ($nodeList as $node)
         {
             $values = array();
@@ -448,61 +562,54 @@ class SchemaUpdate extends Command {
             // Retrieve all available information
             foreach ($childNodes as $node)
             {
-                if ($value = $this->removeSpaces($node->nodeValue))
-                    $values[] = $value;
+                // We accept empty strings or single words (No rows like 'Properties from CommunicateAction')
+                if ( $node->nodeValue == "" || $this->removeSpaces($node->nodeValue)){
+                    if ( $node->nodeValue == "" ) {
+                        $values[] = null;
+                    }
+                    else {
+                        $values[] = $this->removeSpaces($node->nodeValue);
+                    }
+                }
+
             }
-
-            // Here we skip
-            if (count($values) > 1 ){
+            // Here we skip row 'Properties from... '
+            if (count($values) == 3 ){
                 $expectedTypes = explode(' or ', $values[1]);
-
                 // Create the final $property
+                //$this->line($values[0]);
                 $properties[$values[0]] = array(
                     'propertyFrom' => $from,
                     'expectedTypes' => $expectedTypes,
-                    'description' => $values[2]
+                    'description' => $values[2],
+                    'url' => $urls[$count]
                 );
+                $count++;
             }
-            else { $from = $values[0]; }
-        }
-
-        // Retrieve all Type Properties
-        $nodeList = $xpath->query("(//tbody[@class='supertype'])[2]/tr");
-
-        foreach ($nodeList as $node)
-        {
-            $values = array();
-            $childNodes = $node->childNodes;
-
-            // Retrieve all available information
-            foreach ($childNodes as $node)
-            {
-                if ($value = $this->removeSpaces($node->nodeValue))
-                    $values[] = $value;
-            }
-
-            // Here we skip
-            if (count($values) > 1 ){
-                $expectedTypes = explode(' or ', $values[1]);
-
+            else if (count($values) == 2 ){
                 // Create the final $property
+                //$this->line($values[0]);
                 $properties[$values[0]] = array(
                     'propertyFrom' => $from,
-                    'expectedTypes' => $expectedTypes,
-                    'description' => $values[2]
+                    'expectedTypes' => [],
+                    'description' => $values[1],
+                    'url' => $urls[$count]
                 );
+                $count++;
             }
-            else { $from = $values[0]; }
+            else {
+                //$this->error("Could not parse property " . $values[0]);
+                //die();
+                $from = $values[0];
+            }
 
         }
 
-        $this->info ( "parseTypeProperties - done ");
-
-        //if (empty($properties))
-        //    return array();
-
+        if ($this->verbose) $this->info ( "Done: parseTypeProperties");
         return $properties;
+
     }
+
 
 
     /**

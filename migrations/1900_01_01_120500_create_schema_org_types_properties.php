@@ -23,18 +23,13 @@ class CreateSchemaOrgTypesProperties extends Migration
             $table->boolean('favorite')->default(false);
             $table->string('name');
             $table->text('description')->nullable();
+            $table->text('url')->nullable();
+            $table->text('extends')->nullable();
+
+            $table->timestamps();
+            $table->softDeletes();
         });
 
-
-        Schema::create('schema_types_pivot', function(Blueprint $table)
-        {
-            $table->increments('id');
-            $table->boolean('favorite')->default(false);
-            $table->integer('child_id')->unsigned()->index();
-            $table->foreign('child_id')->references('id')->on('schema_types');
-            $table->integer('parent_id')->unsigned()->index();
-            $table->foreign('parent_id')->references('id')->on('schema_types');
-        });
 
         Schema::create('schema_properties', function (Blueprint $table) {
 
@@ -42,16 +37,27 @@ class CreateSchemaOrgTypesProperties extends Migration
             $table->unsignedInteger('position')->nullable();
             $table->boolean('favorite')->default(false);
             $table->string('name');
-            $table->string('expected_type')->nullable();
             $table->text('description')->nullable();
+            $table->text('from_type')->nullable();
+            $table->text('url')->nullable();
+
+            $table->timestamps();
+            $table->softDeletes();
         });
 
-        Schema::create('schema_property_types', function(Blueprint $table)
+        // A property hasMany expected values (which are types)
+        Schema::create('schema_expected_types', function(Blueprint $table)
         {
             $table->increments('id');
             $table->unsignedInteger('position')->nullable();
+            $table->boolean('favorite')->default(false);
+            $table->integer('property_id')->unsigned()->index();
+            $table->foreign('property_id')->references('id')->on('schema_properties');
             $table->integer('type_id')->unsigned()->index();
             $table->foreign('type_id')->references('id')->on('schema_types');
+
+            $table->timestamps();
+            $table->softDeletes();
         });
 
 
@@ -67,9 +73,8 @@ class CreateSchemaOrgTypesProperties extends Migration
     {
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
         Schema::drop('schema_types');
-        Schema::drop('schema_types_pivot');
         Schema::drop('schema_properties');
-        Schema::drop('schema_property_types');
+        Schema::drop('schema_expected_types');
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
     }
 
