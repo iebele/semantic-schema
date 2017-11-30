@@ -101,17 +101,6 @@ class SchemaTypes extends Model  {
                     'url' => $propertyUrl
                 ];
                 $property = SchemaProperties::create($propertyValues);
-                
-
-                foreach ($expectedTypeNames as $expectedTypeName ){
-                    $expectedTypeValues = [
-                        'property_id' => $property->id,
-                        'typeName' => $expectedTypeName
-                    ];
-                    SchemaExpectedTypes::create($expectedTypeValues);
-                }
-
-                $type->properties()->attach($property->id);
             }
             else {
                 $property = $check;
@@ -121,12 +110,17 @@ class SchemaTypes extends Model  {
                 die( __METHOD__ . " -  NULL property for type  " . $typeName);
             }
 
+            // Add expected types of property to table schema_expected_types
+            foreach ($expectedTypeNames as $expectedTypeName ){
+                $expectedTypeValues = [
+                    'property_id' => $property->id,
+                    'typeName' => $expectedTypeName
+                ];
+                SchemaExpectedTypes::create($expectedTypeValues);
+            }
 
-            
-            //$pivot = new SchemaPropertyType;
-            //$pivot->property_id = $property->id;
-            //$pivot->type_id = $type->id;
-            //$pivot->save();
+            // add property to list of properties of type (type hasMany properties)
+            $type->properties()->attach($property->id);
 
             return $property;
 
