@@ -18,7 +18,7 @@ class SchemaProperties extends Model  {
      * @var string
      */
 
-    protected $table = 'schema_types';
+    protected $table = 'schema_properties';
 
 
     /**
@@ -46,15 +46,37 @@ class SchemaProperties extends Model  {
     protected $hidden = [];
 
 
+    /*
+    public static function addProperty( $name, $description, $extends, $url )
+    {
+
+        $result = null;
+        // Do not overwrite existing types
+        $check = SchemaTypes::where('name', $name)->first();
+        if (!$check){
+            $type = [
+                'name' => $name,
+                'description' => $description,
+                'extends' => $extends,
+                'url' => $url
+            ];
+            $result = SchemaTypes::create($type);
+        }
+
+        return $result;
+
+    }
+    */
+
     /**
      *
      * @return $this
      */
     public function expectedTypes()
     {
-        die('TODO ' . __METHOD__);
+        return $this->hasMany('Iebele\SemanticSchema\Models\SchemaExpectedTypes');
 
     }
-    
+
 
 }

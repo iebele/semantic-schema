@@ -17,7 +17,7 @@ An example of a type is a `CreativeWork`, which has - among many others - a prop
 
 Software dealing with structured data design can use this package to retrieve lists of `types` and their expected `properties` as provided by [Schema.org](http://schema.org).
 
-The main types provided (following [Schema.org](http://schema.org))are:
+The main types provided (following the structure of [Schema.org](http://schema.org)) are:
 
    - Action
    - CreativeWork
@@ -34,10 +34,10 @@ The main types provided (following [Schema.org](http://schema.org))are:
 ```php
 $schema = new SemanticSchema();
 
-// return all main types
+// return a model containing all main types
 $mainTypes = $schema->mainTypes();
 
-// return all data types ('Boolean', 'Date', 'DateTime', 'Number', etc. )
+// return a model containing all data types ('Boolean', 'Date', 'DateTime', 'Number', etc. )
 $mainDataTypes = $schema->dataTypes();
 
 // return all sub-types and properties of 'CreativeWork'
@@ -103,7 +103,6 @@ php artisan list
 You will see the available commands for **semantic-schema** listed under `schema`.
 
 ## Usage
-
 
 
 The artisan command `php artisan schema:update` fetches all types and its properties from schema.org.
@@ -226,10 +225,16 @@ class CreateSchemaOrgTypesProperties extends Migration
 ## Todo
 
 - [x] Readme
-- [ ]
-- [ ] Artisan Command
+- [x] Artisan command `update`
+- [ ] Artisan command `refresh`
+- [ ] Artisan command `mainTypes`
+- [ ] Artisan command `types`
+- [ ] Artisan command `properties`
+- [ ] Artisan command `all`
 - [ ] Package Installation
 - [x] Migrations
+
+
 
 ## Limitations
 
@@ -238,6 +243,21 @@ The collection of the  [Full Hierarchy](https://schema.org/docs/full.html) by **
 takes considerable time (about 30 minutes).
 Might the markup of the [Full Hierarchy](https://schema.org/docs/full.html) change in the future, **Semantic Schema** might produce errors while fetching the data.
 If this might happen, please report this to me.
+
+The Artisan command `update` relies on many HTTP requests to [schema.org](https://schema.org/). In case of a connection time-out the command will fail and report an error.
+In such a case, one might run `update` again.
+
+
+
+## FAQ
+
+ - *The [Semantic Schema](https://github.com/iebele/semantic-schema) `update` command makes many requests to [schema.org](https://schema.org/). Doesn't this look like a DDOS attack?*
+
+The **Semantic Schema** `update` command does not DDOS [schema.org](https://schema.org/).
+The `update` makes HTTPS requests with random time intervals.
+[schema.org](https://schema.org/) is prepared for intensive traffic.
+
+ -  *Why don't you use [schema.rdfa](https://github.com/schemaorg/schemaorg/blob/master/data/schema.rdfa) instead of the [Full Hierarchy](https://schema.org/docs/full.html)?*
 
 I could have decided to use [schema.rdfa](https://github.com/schemaorg/schemaorg/blob/master/data/schema.rdfa).
 But, at the moment of writing this package I could not decide how to obtain all properties of a given `type`, so "I did it my way".

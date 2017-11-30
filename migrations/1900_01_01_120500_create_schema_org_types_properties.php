@@ -30,7 +30,6 @@ class CreateSchemaOrgTypesProperties extends Migration
             $table->softDeletes();
         });
 
-
         Schema::create('schema_properties', function (Blueprint $table) {
 
             $table->increments('id');
@@ -45,8 +44,22 @@ class CreateSchemaOrgTypesProperties extends Migration
             $table->softDeletes();
         });
 
-        // A property hasMany expected values (which are types)
+        // A property hasMany expected values (which, many cases, can be types)
         Schema::create('schema_expected_types', function(Blueprint $table)
+        {
+            $table->increments('id');
+            $table->integer('property_id')->unsigned()->index();
+            $table->foreign('property_id')->references('id')->on('schema_properties');
+            $table->string('typeName')->nullable();
+            //$table->integer('type_id')->unsigned()->index();
+            //$table->foreign('type_id')->references('id')->on('schema_types');
+
+            $table->timestamps();
+            $table->softDeletes();
+        });
+
+        // A type hasMany properties
+        Schema::create('schema_property_type', function(Blueprint $table)
         {
             $table->increments('id');
             $table->unsignedInteger('position')->nullable();
@@ -75,6 +88,7 @@ class CreateSchemaOrgTypesProperties extends Migration
         Schema::drop('schema_types');
         Schema::drop('schema_properties');
         Schema::drop('schema_expected_types');
+        Schema::drop('schema_property_type');
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
     }
 

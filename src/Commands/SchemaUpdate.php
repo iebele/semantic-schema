@@ -64,6 +64,15 @@ class SchemaUpdate extends Command {
 
     public function handle()
     {
+
+        // Prevent CTRL-C
+        /*
+        pcntl_signal(SIGINT, function ($signo) {
+            echo "CATCH!\n";
+            die();
+        });
+        */
+
         $this->fire();
     }
 
@@ -122,7 +131,7 @@ class SchemaUpdate extends Command {
         $test[] = "PreOrderAction";
         $test = null;
 
-        $this->verbose = true;
+        $this->verbose = false;
 
         if (!$test){
             $types = $this->parseAllTypes($schemaAllTypesDocument['file']);
@@ -190,7 +199,7 @@ class SchemaUpdate extends Command {
                         $validTypes[$typeName]['properties'][$property]['propertyFrom'] = $propertyFrom;
                         $validTypes[$typeName]['properties'][$property]['description'] = $value['description'];
                         $validTypes[$typeName]['properties'][$property]['url'] = $value['url'];
-                        $this->line("A: " . gettype($value['expectedTypes']));
+                        if ($this->verbose) $this->line("A: " . gettype($value['expectedTypes']));
                         if ($value['expectedTypes'] ){
                             $expectedTypes = $value['expectedTypes'];
                             foreach ($expectedTypes as $expectedType){
@@ -210,7 +219,7 @@ class SchemaUpdate extends Command {
                 // Show validTypes in console
 
                 if ($this->verbose) $this->comment("Type: " . $typeName );
-                $this->line("C: " . gettype($validTypes[$typeName]['extends']));
+                if ($this->verbose) $this->line("C: " . gettype($validTypes[$typeName]['extends']));
                 if ($this->verbose) $this->comment("Extends: " . $validTypes[$typeName]['extends']);
                 if ($this->verbose) $this->comment("extensionUrl: " . $validTypes[$typeName]['extensionUrl']);
                 if ($this->verbose) $this->comment("    - Description: " . $validTypes[$typeName]['description']);
@@ -223,7 +232,7 @@ class SchemaUpdate extends Command {
                     if ($this->verbose) $this->comment("         - Url: "   . $property['url']);
                     if ($this->verbose) $this->comment("         - Expected types: ");
                     if ( $property['expectedTypes'] ){
-                        $this->line("B: " . gettype($property['expectedTypes'] ));
+                        if ($this->verbose) $this->line("B: " . gettype($property['expectedTypes'] ));
                         foreach ( $property['expectedTypes'] as $expectedType ){
                             if ($this->verbose)  $this->comment("             -  ". $expectedType);
                         }
@@ -245,14 +254,27 @@ class SchemaUpdate extends Command {
             }
 
             
-            
-            // Create type record in table schema_types
-
-            $result = SchemaTypes::addType( $typeName, $validTypes[$typeName]['description'], $validTypes[$typeName]['extends'], $validTypes[$typeName]['extensionUrl']);
-
-            if ($result == null){
-                $this->progressbar->setMessage($typeName . " already exists in local database.");
+            // Store types and properties in database
+            //
+            //
+            //
+            $type = SchemaTypes::addType( $typeName, $validTypes[$typeName]['description'], $validTypes[$typeName]['extends'], $validTypes[$typeName]['extensionUrl']);
+            if ( $type ){
+                // Add properties
+                foreach ( $validTypes[$typeName]['properties'] as $property ){
+                    $type->addPropertyToType( $typeName, $property['name'], $property['description'], $property['url'] , $property['expectedTypes'] );
+                }
             }
+            else {
+                $this->progressbar->setMessage("Could not store " . $typeName . " in database"  );
+                $this->progressbar->setProgress($count);
+                $this->progressbar->finish();
+                $this->error ("Error");
+            }
+
+            //if ($type == null){
+            //    $this->progressbar->setMessage($typeName . " already exists in local database.");
+            //}
 
             $this->progressbar->setProgress($count);
             // Wait some time, to not DDOS the Schema.org website
@@ -367,7 +389,7 @@ class SchemaUpdate extends Command {
                 $types[$type] = $previous;
             }
         }
-        
+
         return $types;
     }
 

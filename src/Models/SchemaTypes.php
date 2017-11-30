@@ -6,6 +6,9 @@ namespace Iebele\SemanticSchema\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+use Iebele\SemanticSchema\Models\SchemaProperties as SchemaProperties;
+use Iebele\SemanticSchema\Models\SchemaExpectedTypes as SchemaExpectedTypes;
+use Iebele\SemanticSchema\Models\SchemaPropertyType as SchemaPropertyType;
 
 class SchemaTypes extends Model  {
 
@@ -52,50 +55,85 @@ class SchemaTypes extends Model  {
      */
     public function properties()
     {
+        return $this->belongsToMany('Iebele\SemanticSchema\Models\SchemaPropertyType', 'schema_property_type',  'type_id', 'property_id'); // ->orderBy('schema_property_type.position', 'asc');
 
-        die('TODO ' . __METHOD__);
-        //return $this->hasMany('Iebele\SemanticSchema\Models\SchemaProperties')->orderBy('position', 'asc');
     }
 
     
     public static function addType( $name, $description, $extends, $url )
     {
 
-        $result = null;
+
+        $type = null;
         // Do not overwrite existing types
-        $check = SchemaTypes::where('name', $name)->first();
-        if (!$check){
-            $type = [
+        $type = SchemaTypes::where('name', $name)->first();
+        if (!$type){
+            $typeValues = [
                 'name' => $name,
                 'description' => $description,
                 'extends' => $extends,
                 'url' => $url
             ];
-            $result = SchemaTypes::create($type);
+            $type = SchemaTypes::create($typeValues);
+            return $type;
         }
-        
-        return $result;
+
+        if ($type){
+            return $type;
+        }
+        return null;
 
     }
-/*
-    public static function addPropertyToType( $typeName, $propertyName, $propertyDescription, $propertyUrl , $expectedTypeNames)
+
+
+    public function addPropertyToType( $typeName, $propertyName, $propertyDescription, $propertyUrl , $expectedTypeNames)
     {
 
-        // Do not overwrite existing property
-        $check = SchemaProperties::find('name' , $propertyName)->first();
-        if (!$check){
-            $property = [
-                'name' => $propertyName,
-                'description' => $propertyDescription,
-                'url' => $propertyUrl
-            ];
-            $result = SchemaProperties::create($property);
+        $type=SchemaTypes::where('name', $typeName)->first();
+        $property = null;
+        if ($type){
+            // Do not overwrite existing property
+            $check = SchemaProperties::where('name' , $propertyName)->first();
+            if (!$check ){
+                $propertyValues = [
+                    'name' => $propertyName,
+                    'description' => $propertyDescription,
+                    'url' => $propertyUrl
+                ];
+                $property = SchemaProperties::create($propertyValues);
+                
+
+                foreach ($expectedTypeNames as $expectedTypeName ){
+                    $expectedTypeValues = [
+                        'property_id' => $property->id,
+                        'typeName' => $expectedTypeName
+                    ];
+                    SchemaExpectedTypes::create($expectedTypeValues);
+                }
+
+                $type->properties()->attach($property->id);
+            }
+            else {
+                $property = $check;
+            }
+
+            if(!$property){
+                die( __METHOD__ . " -  NULL property for type  " . $typeName);
+            }
+
+
+            
+            //$pivot = new SchemaPropertyType;
+            //$pivot->property_id = $property->id;
+            //$pivot->type_id = $type->id;
+            //$pivot->save();
+
+            return $property;
+
         }
-
-        return $result;
-
-
+        die( __METHOD__ . " -  No such type " . $typeName);
+        return null;
     }
-*/
+
 
 }
