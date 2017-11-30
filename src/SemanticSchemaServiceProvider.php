@@ -43,11 +43,12 @@ class SemanticSchemaServiceProvider extends ServiceProvider
      * @return void
      */
     public function boot() {
+        
+        require __DIR__ . '/Http/routes.php';
+        $this->loadViewsFrom( __DIR__ . '/resources/views', 'semantic-schema');
 
         $this->loadMigrationsFrom(__DIR__ . '/../migrations');
         
     }
-
-
 
 }

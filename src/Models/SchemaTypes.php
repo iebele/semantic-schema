@@ -6,6 +6,9 @@ namespace Iebele\SemanticSchema\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+// raw queries
+use Illuminate\Support\Facades\DB as DB;
+
 use Iebele\SemanticSchema\Models\SchemaProperties as SchemaProperties;
 use Iebele\SemanticSchema\Models\SchemaExpectedTypes as SchemaExpectedTypes;
 use Iebele\SemanticSchema\Models\SchemaPropertyType as SchemaPropertyType;
@@ -56,6 +59,31 @@ class SchemaTypes extends Model  {
     public function properties()
     {
         return $this->belongsToMany('Iebele\SemanticSchema\Models\SchemaPropertyType', 'schema_property_type',  'type_id', 'property_id'); // ->orderBy('schema_property_type.position', 'asc');
+
+    }
+
+    /**
+     *
+     * @return $this
+     */
+    public function propertiesOfType()
+    {
+        $result = [];
+
+        $pivot = DB::table('schema_property_type')
+            ->where('type_id', $this->id)
+            ->get();
+
+        //die($pivot);
+        foreach ($pivot as $record) {
+            $properties = SchemaProperties::where('id' , $record->property_id)->get();
+            foreach ($properties as $property){
+                $result[] = $property->name;
+            }
+        }
+        var_dump($result);
+        die();
+        return  $result;
 
     }
 
