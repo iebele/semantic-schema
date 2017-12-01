@@ -1,8 +1,17 @@
 # semantic-schema
 
-Laravel/Lumen package for schema.org types and properties.
 
 [![Build Status](https://travis-ci.org/iebele/semantic-schema.svg?branch=master)](https://travis-ci.org/iebele/semantic-schema)
+
+
+Laravel/Lumen is a package for implementing the schema.org vocabulary in your project.
+It comes with Artisan commands to make local updates of your schema.org vocabulaire, some straightforwarded PHP helper classes and a simple, yet powerful API.
+
+Not yet familiar with semantic web practice? Probably you should :wink: Please read the following documents before you start:
+
+ - [Schema.org vocab](http://schema.org)
+ - [W3C Semantic Web](https://www.w3.org/standards/semanticweb)
+ - [W3C Structured/Micro Data](https://www.w3.org/TR/microdata/)
 
 
 ## Purpose
