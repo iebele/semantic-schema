@@ -53,7 +53,7 @@ class SchemaUpdate extends Command {
      *
      * @var string
      */
-    protected $description = 'Update semantic schema repository (fetch types and properties from schema.org).';
+    protected $description = 'Update local tables with types and properties from schema.org.';
 
     /**
      *
@@ -115,20 +115,22 @@ class SchemaUpdate extends Command {
         }
 
 
-        // Get types from file
-        // Test a type
-        // PreOrderAction
+        // If they array 'test' is not null, only the types in the array are fetched. This is for debugging purposes only.
         //$test[] = "+";
         //$test[] = "Float";
         $test[] = "Thing";
         //$test[] = "Audiobook";
         //$test[] = "OccupationalTherapy";
         //$test[] = "FinancialProduct";
-        $test[] = "ConfirmAction";
-        $test[] = "LoanOrCredit";
-        $test[]  = "RsvpAction";
-        $test[]  = "CreditCard";
-        $test[] = "PreOrderAction";
+        //$test[] = "ConfirmAction";
+        //$test[] = "LoanOrCredit";
+        //$test[]  = "RsvpAction";
+        //$test[]  = "CreditCard";
+        //$test[] = "PreOrderAction";
+        $test[] = "Action";
+        $test[] = "LocalBusiness";
+        $test[] = "CreativeWork";
+        $test[] = "BlogPosting";
         $test = null;
 
         $this->verbose = false;
@@ -148,7 +150,7 @@ class SchemaUpdate extends Command {
         $execution_time = ($time_end - $time_start);
 
         // Progressbar
-        $this->progressbar = $this->output->createProgressBar(count($types));
+        $this->progressbar = $this->output->createProgressBar(count($types) );
         $this->progressbar->setFormat("<info>%message%\n %current%/%max% [%bar%] %percent:3s%% %elapsed%</info>");
 
         $message = "Found " . count($types) . " types in document " . $this->allTypesUrl . " (". $size. " bytes) in " . $execution_time . " seconds.";
@@ -166,8 +168,8 @@ class SchemaUpdate extends Command {
         foreach ($types as $typeName)
         {
 
-            if ($this->verbose)  $this->info("Parsing type: " . $typeName . " (type " . $count . " of " . count($types) . ")" );
-            $message= "Parsing type: " . $typeName ;
+            if ($this->verbose)  $this->info("Fetching type: " . $typeName . " (type " . $count . " of " . count($types) . ")" );
+            $message= "Fetching type: " . $typeName ;
             $this->progressbar->setMessage($message);
 
             // https://schema.org/docs/full.html contains a reference "PaymentCard +" under "FinancialProduct", which results in an error
@@ -192,6 +194,7 @@ class SchemaUpdate extends Command {
 
                 // Create our validTypes object
                 $validTypes[$typeName]['description'] = $type['description'];
+                $validTypes[$typeName]['parents'] = $type['parents'];
                 if ($type['properties']){
                     foreach ( $type['properties'] as $property => $value) {
                         $validTypes[$typeName]['properties'][$property]['name'] = $property;
@@ -258,7 +261,7 @@ class SchemaUpdate extends Command {
             //
             //
             //
-            $type = SchemaTypes::addType( $typeName, $validTypes[$typeName]['description'], $validTypes[$typeName]['extends'], $validTypes[$typeName]['extensionUrl']);
+            $type = SchemaTypes::addType( $typeName, $validTypes[$typeName]['description'], $validTypes[$typeName]['extends'], $validTypes[$typeName]['extensionUrl'] , $validTypes[$typeName]['parents']);
             if ( $type ){
                 // Add properties
                 foreach ( $validTypes[$typeName]['properties'] as $property ){
@@ -282,8 +285,20 @@ class SchemaUpdate extends Command {
 
         }
 
+        $this->progressbar->setMessage("Fetched all types and properties from schema.og");
         $this->progressbar->finish();
-        $this->line(PHP_EOL);
+        $this->info(PHP_EOL);
+        $this->info("Updating schema_parent_type table");
+        if (SchemaTypes::updateParents()){
+            $this->info("Ready.");
+        }
+        else {
+            $this->comment("Warning: Error updating schema_parent_type table.");
+            if ($test!=null){
+                $this->comment("This warning probably occured because you were testing schema:update with only a few types.");
+            }
+        }
+
 
         if ($warnings){
             $this->comment( "There were some warnings:" );
@@ -423,7 +438,6 @@ class SchemaUpdate extends Command {
             }
         }
 
-
         if ( $isExtension == true ) {
             // get link
             $nodeList = $xpath->query("//div[@id='mainContent']/ul/li/a/@href");
@@ -442,12 +456,53 @@ class SchemaUpdate extends Command {
             return $type;
         }
 
+        $type['parents']= $this->parseTypeParents($xpath);
         $type['description']= $this->parseTypeComment($xpath);
         $type['extends']	= $this->parseTypeExtends($xpath);
         $type['properties']	= $this->parseTypeProperties($xpath, $typeName);
 
         if ($this->verbose) $this->info ( "parseType: Parsed type " .  $typeName .".");
         return $type;
+    }
+
+
+    /**
+     * Retrieve the Type parents
+     *
+     * @param   DOMXPath  $xpath  The Document object where to search
+     *
+     * @return	string
+     */
+    private function parseTypeParents(DOMXPath $xpath)
+    {
+
+        if ($this->verbose) $this->info ( "parseParents");
+
+        $nodeList = $xpath->query("//span[@class='breadcrumbs']");
+
+
+        $parents = [];
+        foreach ($nodeList as $node)
+        {
+            if ($this->verbose) $this->info ($node->nodeValue);
+
+            $value = $this->removeSpaces($node->nodeValue);
+            $list = explode(' > ',  $value);
+            // Find parent
+            if ($this->verbose)  $this->info("List count = " . count($list) );
+            if (count($list) == 1 ) {
+                $parents[] = $list[0]; // parent is self, first element
+            }
+            elseif (count($list) == 2 ) {
+                $parents[] = $list[0]; // parent of two levels is first element
+            }
+            else {
+                $parents[] = $list[count($list)-2];
+            }
+        }
+
+        if ($this->verbose)  $this->info ( "parseParents - done");
+        return $parents;
     }
 
 

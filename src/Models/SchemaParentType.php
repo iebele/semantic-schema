@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 
-class SchemaExpectedTypes extends Model  {
+class SchemaParentType extends Model  {
 
 
     use SoftDeletes;
@@ -18,7 +18,7 @@ class SchemaExpectedTypes extends Model  {
      * @var string
      */
 
-    protected $table = 'schema_expected_types';
+    protected $table = 'schema_parent_type';
 
     /**
      * The attributes that should be mutated to dates.
@@ -32,7 +32,7 @@ class SchemaExpectedTypes extends Model  {
      *
      * @var array
      */
-    protected $fillable = ['property_id', 'type_name', 'property_name'];
+    protected $fillable = ['parent_id','type_id',];
 
 
     protected $guarded = [];

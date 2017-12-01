@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB as DB;
 use Iebele\SemanticSchema\Models\SchemaProperties as SchemaProperties;
 use Iebele\SemanticSchema\Models\SchemaExpectedTypes as SchemaExpectedTypes;
 use Iebele\SemanticSchema\Models\SchemaPropertyType as SchemaPropertyType;
+use Iebele\SemanticSchema\Models\SchemaParentType as SchemaParentType;
 
 class SchemaTypes extends Model  {
 
@@ -62,6 +63,98 @@ class SchemaTypes extends Model  {
 
     }
 
+    public function getProperties($typeName)
+    {
+
+        $result = null;
+        $type=SchemaTypes::where('name' , $typeName)->first();
+        $properties =  SchemaPropertyType::where('type_id', $type->id)->get();
+        foreach ($properties as $property){
+            $result[$property->id] = SchemaProperties::where('id', $property->id)->get();
+        }
+        return $result;
+
+    }
+
+    /**
+     *
+     * @return $this
+     */
+    public function parents()
+    {
+        return $this->belongsToMany('Iebele\SemanticSchema\Models\SchemaParentType', 'schema_parent_type', 'type_id', 'parent_id' );
+
+    }
+
+    /**
+     *
+     * @return $this
+     */
+    public function getParentTypes()
+    {
+        $parents =  SchemaParentType::where('type_id', $this->id)->get();
+
+        $result = [];
+        if ($parents){
+            foreach ($parents as $parent){
+                $type = SchemaTypes::where('id' , $parent->parent_id)->first();
+                if ($type)
+                {
+                    $result[] = $type->name;
+                }
+
+            }
+        }
+        return $result;
+
+    }
+
+    /**
+     *
+     * @return $this
+     */
+    public function getChildTypes()
+    {
+        $childs =  SchemaParentType::where('parent_id', $this->id)->get();
+
+        $result = [];
+        if ($childs){
+            foreach ($childs as $child){
+                $type = SchemaTypes::where('id' , $child->type_id)->first();
+                if ($type)
+                {
+                    $result[] = $type->name;
+                }
+
+            }
+        }
+        return $result;
+
+    }
+
+    /**
+     * @return bool
+     */
+    public static function updateParents(){
+
+        $types = SchemaTypes::all();
+        foreach ( $types as $type){
+            $extends = explode(",",$type->extends);
+            foreach ($extends as $parentName){
+                // check if parent already exists
+                $parent = SchemaTypes::where('name', $parentName)->first();
+                if ( $parent)
+                {
+                    $type->parents()->attach($parent->id);
+                }
+                else {
+                    echo (PHP_EOL .  __METHOD__ .  PHP_EOL . "No parent found for type " . $type->name . PHP_EOL );
+                }
+            }
+        }
+        return true;
+   }
+
     /**
      *
      * @return $this
@@ -88,13 +181,16 @@ class SchemaTypes extends Model  {
     }
 
     
-    public static function addType( $name, $description, $extends, $url )
+    public static function addType( $name, $description, $extends, $url , $parents )
     {
 
 
         $type = null;
         // Do not overwrite existing types
         $type = SchemaTypes::where('name', $name)->first();
+
+        $extends = implode(",",$parents);
+
         if (!$type){
             $typeValues = [
                 'name' => $name,
@@ -103,10 +199,13 @@ class SchemaTypes extends Model  {
                 'url' => $url
             ];
             $type = SchemaTypes::create($typeValues);
+
             return $type;
         }
 
+
         if ($type){
+
             return $type;
         }
         return null;
@@ -140,11 +239,18 @@ class SchemaTypes extends Model  {
 
             // Add expected types of property to table schema_expected_types
             foreach ($expectedTypeNames as $expectedTypeName ){
-                $expectedTypeValues = [
-                    'property_id' => $property->id,
-                    'typeName' => $expectedTypeName
-                ];
-                SchemaExpectedTypes::create($expectedTypeValues);
+                // check if relation already exists
+                $doit = SchemaExpectedTypes::where([['type_name', '=', $expectedTypeName], ['property_name' , '=',  $propertyName]])->first();
+                if ( !$doit)
+                {
+                    $expectedTypeValues = [
+                        'property_id' => $property->id,
+                        'type_name' => $expectedTypeName,
+                        'property_name' => $propertyName
+                    ];
+                    SchemaExpectedTypes::create($expectedTypeValues);
+                }
+
             }
 
             // add property to list of properties of type (type hasMany properties)
