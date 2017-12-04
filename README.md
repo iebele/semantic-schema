@@ -102,6 +102,20 @@ php artisan list
 
 You will see the available commands for **semantic-schema** listed under `schema`.
 
+To create the database tables you need to run
+```bash
+php artisan schema:migrate
+```
+
+This command will create the following tables (and drop them if they already exist!):
+
+- schema_expected_types
+- schema_parent_type
+- schema_properties
+- schema_property_type
+- schema_types
+
+
 To seed the database tables with data from schema.org, you need to run
 ```bash
 php artisan schema:update
@@ -115,13 +129,7 @@ If they don't, this command will run the migrations.
  Entries in the tables will never be overwritten (in order to keep the integrity of relationships);
  new types and properties will be added to the tables, but existing ones only will be updated.
 
-The tables used by `Iebele/SemanticSchema` are:
 
-- schema_expected_types
-- schema_parent_type
-- schema_properties
-- schema_property_type
-- schema_types
 
 
 ## Usage of the package

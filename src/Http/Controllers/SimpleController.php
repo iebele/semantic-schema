@@ -58,7 +58,19 @@ class SimpleController extends BaseController
     }
 
     /**
-     * API controller method
+     * API controller method GET /main
+     * @param null $name
+     * @return mixed
+     */
+    public function mainTypes(){
+
+        return SemanticSchema::mainTypes();
+
+    }
+
+
+    /**
+     * API controller method GET /type
      * @param null $name
      * @return mixed
      */
@@ -72,18 +84,36 @@ class SimpleController extends BaseController
     }
 
     /**
-     * API controller method
+     * API controller method GET /type/{name}/parents
      * @param null $name
      * @return mixed
      */
-    public function mainType(){
+    public function typeParents( $name  ){
 
-        return SemanticSchema::mainTypes();
+        if ($name){
+            return SemanticSchema::getType($name)->getParentTypes();
+        }
+        return null;
 
     }
 
     /**
-     * API controller method
+     * API controller method GET /type/{name}/childs
+     * @param null $name
+     * @return mixed
+     */
+    public function typeChilds( $name ){
+
+        if ($name){
+            return SemanticSchema::getType($name)->getChildTypes();
+        }
+        return null;
+
+    }
+
+
+    /**
+     * API controller method GET /main/{name}/properties
      * @param $name
      * @return mixed
      */

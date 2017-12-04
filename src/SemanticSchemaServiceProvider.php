@@ -32,8 +32,14 @@ class SemanticSchemaServiceProvider extends ServiceProvider
         });
 
 
+        $this->app->singleton('command.schema.migrate', function()
+        {
+            return new  Commands\SchemaMigrate;
+        });
+
+
         $this->commands(
-            'command.schema.update'
+            ['command.schema.update', 'command.schema.migrate']
         );
     }
 
