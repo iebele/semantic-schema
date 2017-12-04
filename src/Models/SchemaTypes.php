@@ -70,7 +70,7 @@ class SchemaTypes extends Model  {
         $type=SchemaTypes::where('name' , $typeName)->first();
         $properties =  SchemaPropertyType::where('type_id', $type->id)->get();
         foreach ($properties as $property){
-            $result[$property->id] = SchemaProperties::where('id', $property->id)->get();
+            $result[$property->property_id] = SchemaProperties::where('id', $property->property_id)->get();
         }
         return $result;
 

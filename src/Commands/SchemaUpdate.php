@@ -59,9 +59,6 @@ class SchemaUpdate extends Command {
      *
      */
 
-
-
-
     public function handle()
     {
 

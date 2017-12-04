@@ -4,10 +4,15 @@
 [![Build Status](https://travis-ci.org/iebele/semantic-schema.svg?branch=master)](https://travis-ci.org/iebele/semantic-schema)
 
 
-Laravel/Lumen is a package for implementing the schema.org vocabulary in your project.
-It comes with Artisan commands to make local updates of your schema.org vocabulaire, some straightforwarded PHP helper classes and a simple, yet powerful API.
+**[Semantic Schema](https://github.com/iebele/semantic-schema)** is a package for using
+the full schema.org vocabulary in your PHP Laravel/Lumen (version 5.5) project.
+It comes with Artisan commands to make local updates of your schema.org vocabulaire,
+some straightforwarded PHP helper classes and a simple, yet powerful API.
 
-Not yet familiar with semantic web practice? Probably you should :wink: Please read the following documents before you start:
+Are you not familiar with semantic web practice, yet?
+Probably you should :wink:
+
+Please read the following documents before you start:
 
  - [Schema.org vocab](http://schema.org)
  - [W3C Semantic Web](https://www.w3.org/standards/semanticweb)
@@ -16,15 +21,17 @@ Not yet familiar with semantic web practice? Probably you should :wink: Please r
 
 ## Purpose
 
-[Schema.org](http://schema.org) is a collaborative, community activity with a mission to create, maintain, and promote schemas for *structured data* on the Internet, on web pages, in email messages, and beyond.
+[Schema.org](http://schema.org)  is a markup vocabulary for structured data developed by Google, Microsoft, Yahoo and Yandex.
+[Schema.org](http://schema.org) is a collaborative activity with a mission to create, maintain, and promote schemas
+for *structured data* on the Internet, on web pages, in email messages, and beyond.
 
-[Schema.org](http://schema.org)  is a markup vocabulary for structured data developed by Google, Microsoft, Yahoo and Yandex, with the goal of creating a structured data markup that all search engines can understand.
 
-[Schema.org](http://schema.org) provides an ever expanding list of `types`. Each `type` has a list of expected `properties`, which can be strings or values, or, in many cases, one or more `types`.
+[Schema.org](http://schema.org) provides an ever expanding list of `types` and `properties`.
+This schema vocabulary is maintained by a large community of specialists; it is a great starting point to semantically organize and distribute collections and content of any type.
 
-An example of a type is a `CreativeWork`, which has - among many others - a property `author`, which can be an `Organization` or a `Person`. An `Organization` or a `Person` is nothing but another type, which both have a property `name`. `name` can be any string describing the person or organziation. But, the property `author` of the type `CreativeWork` can also be any string describing the person or organziation. It is up to the designer of any piece of structured data which 'schema' applies best in a given situation.
+**[Semantic Schema](https://github.com/iebele/semantic-schema)** provides quick and reliable
+(server-side) access to all `types` and `properties` - **including their many-to-many relations**.
 
-Software dealing with structured data design can use this package to retrieve lists of `types` and their expected `properties` as provided by [Schema.org](http://schema.org).
 
 The main types provided (following the structure of [Schema.org](http://schema.org)) are:
 
@@ -37,22 +44,6 @@ The main types provided (following the structure of [Schema.org](http://schema.o
    - Place
    - Product 
    - MedicalEntity
-
-### Quick Example
-
-```php
-$schema = new SemanticSchema();
-
-// return a model containing all main types
-$mainTypes = $schema->mainTypes();
-
-// return a model containing all data types ('Boolean', 'Date', 'DateTime', 'Number', etc. )
-$mainDataTypes = $schema->dataTypes();
-
-// return all sub-types and properties of 'CreativeWork'
-$creativeWork = $schema->type('CreativeWork');
-```
-
 
 
 ## Installation
@@ -111,8 +102,12 @@ php artisan list
 
 You will see the available commands for **semantic-schema** listed under `schema`.
 
-## Usage
+To seed the database tables with data from schema.org, you need to run
+```bash
+php artisan schema:update
+```
 
+The updating proces may take ±30 minutes.
 
 The artisan command `php artisan schema:update` fetches all types and its properties from schema.org.
 All types and properties are stored in database tables.  `php artisan schema:update` will check if the database tables exists.
@@ -122,126 +117,68 @@ If they don't, this command will run the migrations.
 
 The tables used by `Iebele/SemanticSchema` are:
 
- -  schema_properties
- -  schema_property_types
- -  schema_types
- -  schema_types_pivot
+- schema_expected_types
+- schema_parent_type
+- schema_properties
+- schema_property_type
+- schema_types
+
+
+## Usage of the package
+
+
+#### API
+
+Four API endpoints can be used:
+
+ - GET semantic-schema/api/main (return all main types)
+ - GET semantic-schema/api/type/ (return all types)
+ - GET semantic-schema/api/type/{name} (return type with name 'name')
+ - GET semantic-schema/api/type/{name}/properties (return all properties type with name 'name)
+
+These endpoints return JSON on success, ```null``` on error.
+
+
+
+
+#### The SemanticSchema Class
 
 You can access all schema.org `types` and `properties` (read-only) with the class `Iebele/SemanticSchema/SemanticSchema`.
-The code below shows how to generate a list of all types (types of `Thing`) and properties of schema.org.
-This is an example of all public methods available in the class.
+The code below shows how to generate a list of all main types and their properties.
+
 
 ```php
-$schema = new SemanticSchema();
-$tree = [];
-index = 0;
-foreach ($schema->types() as $type ){
-    $tree[$index]['types'] = $type->types();
-    $tree[$index]['properties'] = $type->properties();
 
-    index++;
+$types = SemanticSchema::mainTypes();
+foreach($types as $type){
+    echo "<h1>" . $type->name . "</h1>";
+    $typeProperties = SemanticSchema::getTypeProperties($type->name);
+    echo "<ul>";
+    foreach($typeProperties as $typeProperty){
+        echo "<li>" . $typeProperty->name . "</li>";
+    }
+    echo "</ul>
 }
 
 ```
 
 
-<hr>
+The method ```SemanticSchema::allTypes()``` returns all types;
+the method ```SemanticSchema::getType($name)``` returns the type with name `name`.
 
-The migrations in this packages are disabled by default to prevent overwriting tables.
-You can change the file `SemanticSchemaServiceProvider.php` or add the following to your migrations:
-
-
-```php
-<?php
-
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Database\Migrations\Migration;
+**That's all what it takes!**
 
 
-class CreateSchemaOrgTypesProperties extends Migration
-{
-    /**
-     * Run the migrations.
-     *
-     * The 'position' and 'favorite' columns are used for indexing.
-     *
-     * @return void
-     */
-    public function up()
-    {
-
-        Schema::create('schema_types', function (Blueprint $table) {
-            $table->increments('id');
-            $table->unsignedInteger('position')->nullable();
-            $table->boolean('favorite')->default(false);
-            $table->string('name');
-            $table->text('description')->nullable();
-        });
+#### HTML view
 
 
-        Schema::create('schema_types_pivot', function(Blueprint $table)
-        {
-            $table->bigIncrements('id');
-            $table->boolean('favorite')->default(false);
-            $table->integer('child_id')->unsigned()->index();
-            $table->foreign('child_id')->references('id')->on('schema_types');
-            $table->integer('parent_id')->unsigned()->index();
-            $table->foreign('parent_id')->references('id')->on('schema_types');
-        });
+At last, the route `semantic-schema/` return a plain HTML file which lists all current main types, types and properties found in
+  the local copy of the [Full Hierarchy](https://schema.org/docs/full.html).
+  Each `type` has a button, which retrieves all properties of that given type.
+  The screendump below shows a fragment (the 'Place' type)of the shown hierarchy:
 
-        Schema::create('schema_properties', function (Blueprint $table) {
+!["HTML fragment of view index.php"](docs/images/html.jpg?raw=true "HTML fragment of view index.php")
 
-            $table->increments('id');
-            $table->unsignedInteger('position')->nullable();
-            $table->boolean('favorite')->default(false);
-            $table->string('name');
-            $table->string('expected_type')->nullable();
-            $table->text('description')->nullable();
-        });
-
-        Schema::create('schema_property_types', function(Blueprint $table)
-        {
-            $table->bigIncrements('id');
-            $table->unsignedInteger('position')->nullable();
-            $table->integer('type_id')->unsigned()->index();
-            $table->foreign('type_id')->references('id')->on('schema_types');
-        });
-
-
-    }
-
-
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
-    public function down()
-    {
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-        Schema::drop('schema_types');
-        Schema::drop('schema_types_pivot');
-        Schema::drop('schema_properties');
-        Schema::drop('schema_property_types');
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
-    }
-
-}
-```
-
-
-## Todo
-
-- [x] Readme
-- [x] Artisan command `update`
-- [ ] Artisan command `refresh`
-- [ ] Artisan command `mainTypes`
-- [ ] Artisan command `types`
-- [ ] Artisan command `properties`
-- [ ] Artisan command `all`
-- [ ] Package Installation
-- [x] Migrations
 
 
 
@@ -266,7 +203,7 @@ Therefore one should not use *Sematic Schema* `id's` in applications but rather 
 The functions `SemanticSchema::getType( (string) $typeName)` and and `SemanticSchema::getProperty( (string) $propertyName)`
 return the respective models.
 
-
+- Tests are not yet available.
 
 
 

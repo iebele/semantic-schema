@@ -43,6 +43,7 @@
         <p><strong>Description</strong>: <em>{{ $type['description'] }}</em></p>
         <p><strong>Canonical source</strong>: <a href="{{ $type['url'] }}">{{ $type['url']  }}</a></p>
         <button onclick="showProperties('{{ $type['name'] }}', 'properties_{{ $type['name'] }}');">Show properties</button>
+        <ul id="properties_{{ $type['name'] }}"></ul>
         <h4>Parent</h4>
         @foreach($type['parents'] as $parent)
             <ul><li><a href="#{{$parent}}">{{$parent}}</a></li></ul>
@@ -68,9 +69,9 @@
     </div>
 @endforeach
 
-
+<!-- Get properties of a type with an AJAX call -->
+<!-- Loading all properties for each type at once might exhaust resources  -->
 <script>
-
     function getAjax(url, success) {
         var xhr = window.XMLHttpRequest ? new XMLHttpRequest() : new ActiveXObject('Microsoft.XMLHTTP');
         xhr.open('GET', url);
@@ -82,28 +83,21 @@
         return xhr;
     }
 
-
     function showProperties( typeName, element){
 
-        var url = "/semantic-schema/type/" + typeName + "/properties";
+        var url = "/semantic-schema/api/type/" + typeName + "/properties";
         getAjax(url, function(data){
-            //console.log(data);
             obj = JSON.parse(data);
             var ul = document.getElementById(element);
+            console.log(element);
             for (x in obj) {
-                //console.log(obj[x][0].name);
                 var li = document.createElement("li");
                 li.innerHTML = "<a href='#>" + obj[x][0].name + "'>" + obj[x][0].name  + "</a><br><em>" + obj[x][0].description  + "</em>";
-                //li.appendChild(document.createTextNode(obj[x][0].name  + "<br><em>" + obj[x][0].description  + "</em>"));
                 ul.appendChild(li);
             }
-
         });
         console.log(typeName)
     }
-
-
-
 </script>
 </body>
 </html>

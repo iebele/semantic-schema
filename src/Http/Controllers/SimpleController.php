@@ -17,6 +17,12 @@ class SimpleController extends BaseController
 {
 
 
+    /**
+     * Return a view with all main types and types (including parents and childs).
+     * The view includes javascript functions with basic AJAX requests to get the properties of each type.
+     *
+     * @return $this
+     */
     public function index(){
 
 
@@ -41,7 +47,6 @@ class SimpleController extends BaseController
         }
 
 
-
         $properties= SemanticSchema::allProperties();
         foreach ($properties as $property){
             $data['properties'][$property->name] = $property;
@@ -52,12 +57,36 @@ class SimpleController extends BaseController
 
     }
 
-    public function type($name){
+    /**
+     * API controller method
+     * @param null $name
+     * @return mixed
+     */
+    public function type( $name = null ){
 
-        return SemanticSchema::getType($name);
+        if ($name){
+            return SemanticSchema::getType($name);
+        }
+        return SemanticSchema::allTypes();
 
     }
 
+    /**
+     * API controller method
+     * @param null $name
+     * @return mixed
+     */
+    public function mainType(){
+
+        return SemanticSchema::mainTypes();
+
+    }
+
+    /**
+     * API controller method
+     * @param $name
+     * @return mixed
+     */
     public function typeProperties($name){
 
         return SemanticSchema::getTypeProperties($name);

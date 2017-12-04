@@ -40,7 +40,7 @@ class SemanticSchema
      */
     static public function getTypeProperties($name){
 
-        $type= SchemaTypes::where('name', $name)->first();
+        $type = SchemaTypes::where('name', $name)->first();
         return $type->getProperties($type->name);
 
     }
@@ -57,6 +57,7 @@ class SemanticSchema
         $types[] = SemanticSchema::getType('Organization');
         $types[] = SemanticSchema::getType('Person');
         $types[] = SemanticSchema::getType('Place');
+        $types[] = SemanticSchema::getType('MedicalEntity');
         $types[] = SemanticSchema::getType('DataType');
         return $types;
 
