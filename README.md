@@ -9,9 +9,7 @@ the full schema.org vocabulary in your PHP Laravel/Lumen (version 5.5) project.
 It comes with Artisan commands to make local updates of your schema.org vocabulaire,
 some straightforwarded PHP helper classes and a simple, yet powerful API.
 
-Are you not familiar with semantic web practice, yet?
-Probably you should :wink:
-
+Are you not familiar with semantic web practice?
 Please read the following documents before you start:
 
  - [Schema.org vocab](http://schema.org)
