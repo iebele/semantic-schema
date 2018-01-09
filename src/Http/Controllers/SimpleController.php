@@ -91,7 +91,8 @@ class SimpleController extends BaseController
     public function typeParents( $name  ){
 
         if ($name){
-            return SemanticSchema::getType($name)->getParentTypes();
+            return SemanticSchema::getType($name)->parents()->get();
+           // return SemanticSchema::getType($name)->getParentTypes();
         }
         return null;
 

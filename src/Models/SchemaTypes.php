@@ -82,7 +82,8 @@ class SchemaTypes extends Model  {
      */
     public function parents()
     {
-        return $this->belongsToMany('Iebele\SemanticSchema\Models\SchemaParentType', 'schema_parent_type', 'type_id', 'parent_id' );
+
+        return $this->belongsToMany('Iebele\SemanticSchema\Models\SchemaTypes', 'schema_parent_type', 'type_id', 'parent_id' );
 
     }
 
@@ -102,7 +103,6 @@ class SchemaTypes extends Model  {
                 {
                     $result[] = $type->name;
                 }
-
             }
         }
         return $result;
@@ -125,11 +125,9 @@ class SchemaTypes extends Model  {
                 {
                     $result[] = $type->name;
                 }
-
             }
         }
         return $result;
-
     }
 
     /**
@@ -139,10 +137,12 @@ class SchemaTypes extends Model  {
 
         $types = SchemaTypes::all();
         foreach ( $types as $type){
+            //var_dump($type->id);
             $extends = explode(",",$type->extends);
             foreach ($extends as $parentName){
                 // check if parent already exists
                 $parent = SchemaTypes::where('name', $parentName)->first();
+
                 if ( $parent)
                 {
                     $type->parents()->attach($parent->id);
@@ -174,8 +174,8 @@ class SchemaTypes extends Model  {
                 $result[] = $property->name;
             }
         }
-        var_dump($result);
-        die();
+        //var_dump($result);
+        //die();
         return  $result;
 
     }

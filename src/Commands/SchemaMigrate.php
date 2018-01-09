@@ -87,11 +87,11 @@ class SchemaMigrate extends Command {
 
         $this->info("Drop tables");
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-        Schema::drop('schema_types');
-        Schema::drop('schema_parent_type');
-        Schema::drop('schema_properties');
-        Schema::drop('schema_expected_types');
-        Schema::drop('schema_property_type');
+        Schema::dropIfExists('schema_types');
+        Schema::dropIfExists('schema_parent_type');
+        Schema::dropIfExists('schema_properties');
+        Schema::dropIfExists('schema_expected_types');
+        Schema::dropIfExists('schema_property_type');
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
 
